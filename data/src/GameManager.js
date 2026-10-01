@@ -221,7 +221,7 @@ IF EXIST AUTORUN.BAT CALL AUTORUN.BAT
     }
     restart() {
         this.clearEJSResetTimer();
-        this.functions.restart();
+        this.EJS.withCoreAudioCapture(() => this.functions.restart());
     }
     getState() {
         return this.Module.EmulatorJSGetState();
