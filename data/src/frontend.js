@@ -981,7 +981,10 @@ class EJS_Frontend {
                 this.displayMessage("FAILED TO SAVE STATE");
                 return;
             }
-            const { screenshot, format } = await this.ejs.takeScreenshot(this.ejs.capture.photo.source, this.ejs.capture.photo.format, this.ejs.capture.photo.upscale);
+            let screenshot, format;
+            if (this.ejs.hasEventListener("saveState")) {
+                ({ screenshot, format } = await this.ejs.takeScreenshot(this.ejs.capture.photo.source, this.ejs.capture.photo.format, this.ejs.capture.photo.upscale));
+            }
             const called = this.ejs.callEvent("saveState", {
                 screenshot: screenshot,
                 format: format,
@@ -1032,7 +1035,10 @@ class EJS_Frontend {
 
         const saveSavFiles = addButton(this.ejs.config.buttonOpts.saveSavFiles, async () => {
             const file = await this.ejs.gameManager.getSaveFile();
-            const { screenshot, format } = await this.ejs.takeScreenshot(this.ejs.capture.photo.source, this.ejs.capture.photo.format, this.ejs.capture.photo.upscale);
+            let screenshot, format;
+            if (this.ejs.hasEventListener("saveSave")) {
+                ({ screenshot, format } = await this.ejs.takeScreenshot(this.ejs.capture.photo.source, this.ejs.capture.photo.format, this.ejs.capture.photo.upscale));
+            }
             const called = this.ejs.callEvent("saveSave", {
                 screenshot: screenshot,
                 format: format,
@@ -2953,7 +2959,7 @@ class EJS_Frontend {
             menuButton.style.display = "none";
             this.ejs.on("start", () => {
                 menuButton.style.display = "";
-                if (matchMedia('(pointer:fine)').matches && this.ejs.getSettingValue("menu-bar-button") !== "visible") {
+                if (matchMedia('(pointer:fine)').matches && this.ejs.preGetSetting("menu-bar-button") !== "visible") {
                     menuButton.style.opacity = 0;
                     this.changeSettingOption('menu-bar-button', 'hidden', true);
                 }
