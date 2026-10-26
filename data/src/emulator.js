@@ -1052,26 +1052,21 @@ class EmulatorJS {
             this.startGameError("Failed to start game");
         });
     }
-    withCoreAudioCapture(callback) {
+    hookCoreAudioContext() {
+        // Route AudioContexts created while captureAudioContext is set through our gain node
+        if (this.audioContextHooked) return;
         const native = window.AudioContext || window.webkitAudioContext;
-        if (!this.audioContextHooked && typeof native === "function") {
-            this.audioContextHooked = true;
-            const hooked = new Proxy(native, {
-                construct: (target, args, newTarget) => {
-                    const ctx = Reflect.construct(target, args, newTarget);
-                    if (this.captureAudioContext) this.setCoreAudioContext(ctx);
-                    return ctx;
-                }
-            });
-            if (window.AudioContext) window.AudioContext = hooked;
-            if (window.webkitAudioContext) window.webkitAudioContext = hooked;
-        }
-        this.captureAudioContext = true;
-        try {
-            return callback();
-        } finally {
-            this.captureAudioContext = false;
-        }
+        if (typeof native !== "function") return;
+        this.audioContextHooked = true;
+        const hooked = new Proxy(native, {
+            construct: (target, args, newTarget) => {
+                const ctx = Reflect.construct(target, args, newTarget);
+                if (this.captureAudioContext) this.setCoreAudioContext(ctx);
+                return ctx;
+            }
+        });
+        if (window.AudioContext) window.AudioContext = hooked;
+        if (window.webkitAudioContext) window.webkitAudioContext = hooked;
     }
     setCoreAudioContext(ctx) {
         try {
@@ -1106,7 +1101,13 @@ class EmulatorJS {
             if (this.debug) args.push("-v");
             args.push("/" + this.fileName);
             if (this.debug) console.log(args);
-            this.withCoreAudioCapture(() => this.Module.callMain(args));
+            this.hookCoreAudioContext();
+            this.captureAudioContext = true;
+            try {
+                this.Module.callMain(args);
+            } finally {
+                this.captureAudioContext = false;
+            }
             if (typeof this.config.softLoad === "number" && this.config.softLoad > 0) {
                 this.resetTimeout = setTimeout(() => {
                     this.gameManager.restart();
